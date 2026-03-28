@@ -1,0 +1,79 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+ARM/
+ARM64/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# .NET artifacts
+*.dll
+*.exe
+*.app
+*.ipa
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+*.snupkg
+*.nupkg
+*.pdb
+*.cache
+*.pidb
+*.svclog
+*.dbmdl
+*.jfm
+*.publishsettings
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]enchmarkDotNet.Artifacts/
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.code-workspace
+
+# NuGet
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET / generated files
+wwwroot/dist/
+wwwroot/lib/
+Properties/ServiceDependencies/
+Properties/serviceDependencies.*.json
+appsettings.Local.json
+appsettings.*.local.json
+
+# Tooling
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.sonarqube/
+
+# OS files
+.DS_Store
+Thumbs.db
