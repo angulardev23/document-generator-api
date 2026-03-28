@@ -68,6 +68,31 @@ public sealed class DocumentGenerationEndpointTests : IClassFixture<WebApplicati
             field => field == "template");
     }
 
+    [Fact]
+    public async Task PostGenerate_WithMissingPlaceholderData_ReturnsBadRequestWithPlaceholderDetails()
+    {
+        using var client = _factory.CreateClient();
+        using var form = new MultipartFormDataContent();
+        using var templateContent = new ByteArrayContent(DocxTemplateFactory.CreateTemplate("{{FirstName}}"));
+
+        templateContent.Headers.ContentType = new MediaTypeHeaderValue(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+        form.Add(templateContent, "template", "template.docx");
+        form.Add(new StringContent("""{"LastName":"Escalante"}""", Encoding.UTF8, "application/json"), "data");
+
+        using var response = await client.PostAsync("/api/documents/generate", form);
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var errors = payload.RootElement.GetProperty("errors").EnumerateArray().ToArray();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("validation_error", payload.RootElement.GetProperty("code").GetString());
+        Assert.Contains(
+            errors,
+            error => error.GetProperty("field").GetString() == "data.FirstName" &&
+                     error.GetProperty("message").GetString()!.Contains("{{FirstName}}", StringComparison.Ordinal));
+    }
+
     private static string ExtractDocumentText(byte[] generatedBytes)
     {
         using var memoryStream = new MemoryStream(generatedBytes);

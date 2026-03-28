@@ -46,6 +46,11 @@ public sealed class DocumentGenerationUseCase(
         }
         catch (Exception exception)
         {
+            if (TemplateProcessingErrorParser.TryParse(exception, out var validationErrors))
+            {
+                throw new ValidationException(validationErrors);
+            }
+
             logger.LogError(
                 exception,
                 "Document generation failed for template {TemplateFileName}.",

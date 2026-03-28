@@ -56,6 +56,26 @@ public sealed class DocumentGenerationUseCaseTests
         Assert.Contains(exception.Errors, error => error.Message.Contains("JSON object", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task GenerateAsync_WithMissingPlaceholderData_ThrowsValidationExceptionWithPlaceholder()
+    {
+        var useCase = CreateUseCase(new ThrowingDocumentGeneratorService(
+            new Exception(
+                "'{{FirstName}}' could not be replaced:  >> {{FirstName}} <<  ",
+                new Exception("Property 'FirstName' not found in 'FirstName' of type 'System.String'"))));
+        var command = new GenerateDocumentCommand(
+            "template.docx",
+            Encoding.UTF8.GetBytes("template"),
+            """{"LastName":"Escalante"}""");
+
+        var exception = await Assert.ThrowsAsync<ValidationException>(() => useCase.GenerateAsync(command, CancellationToken.None));
+
+        Assert.Contains(
+            exception.Errors,
+            error => error.Field == "data.FirstName" &&
+                     error.Message.Contains("{{FirstName}}", StringComparison.Ordinal));
+    }
+
     private static DocumentGenerationUseCase CreateUseCase(IDocumentGeneratorService generatorService)
     {
         var options = Options.Create(new DocumentGenerationOptions
@@ -87,5 +107,14 @@ public sealed class DocumentGenerationUseCaseTests
                 content,
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
         }
+    }
+
+    private sealed class ThrowingDocumentGeneratorService(Exception exception) : IDocumentGeneratorService
+    {
+        public Task<GeneratedDocument> GenerateAsync(
+            Stream templateStream,
+            JsonElement data,
+            CancellationToken cancellationToken)
+            => Task.FromException<GeneratedDocument>(exception);
     }
 }
