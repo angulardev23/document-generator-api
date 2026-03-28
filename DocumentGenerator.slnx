@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DocumentGenerator.Api/DocumentGenerator.Api.csproj" />
+    <Project Path="src/DocumentGenerator.Application/DocumentGenerator.Application.csproj" />
+    <Project Path="src/DocumentGenerator.Domain/DocumentGenerator.Domain.csproj" />
+    <Project Path="src/DocumentGenerator.Infrastructure/DocumentGenerator.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DocumentGenerator.Tests/DocumentGenerator.Tests.csproj" />
+  </Folder>
+</Solution>
