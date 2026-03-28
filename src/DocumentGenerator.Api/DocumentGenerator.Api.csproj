@@ -9,6 +9,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\Dockerfile" Link="Dockerfile" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>DocumentGenerator.Api</RootNamespace>
@@ -17,4 +21,3 @@
   </PropertyGroup>
 
 </Project>
-
