@@ -1,10 +1,9 @@
 using DocumentGenerator.Api.Configuration;
-using DocumentGenerator.Api.Contracts;
+using DocumentGenerator.Api.Endpoints;
 using DocumentGenerator.Api.ExceptionHandling;
 using DocumentGenerator.Application;
 using DocumentGenerator.Application.Documents;
 using DocumentGenerator.Infrastructure;
-using Microsoft.AspNetCore.Mvc;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -34,47 +33,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var documentsGroup = app.MapGroup("/api/documents");
-
-documentsGroup.MapPost(
-        "/generate",
-        async (
-            [FromForm] GenerateDocumentRequest request,
-            IDocumentGenerationUseCase useCase,
-            CancellationToken cancellationToken) =>
-        {
-            byte[]? templateContent = null;
-
-            if (request.Template is not null)
-            {
-                await using var memoryStream = new MemoryStream();
-                await request.Template.CopyToAsync(memoryStream, cancellationToken);
-                templateContent = memoryStream.ToArray();
-            }
-
-            var command = new GenerateDocumentCommand(
-                request.Template?.FileName,
-                templateContent,
-                request.Data);
-
-            GeneratedDocumentResponse response = await useCase.GenerateAsync(command, cancellationToken);
-
-            response.Content.Position = 0;
-
-            return Results.File(
-                response.Content,
-                response.ContentType,
-                response.FileName);
-        })
-    .WithName("GenerateDocument")
-    .WithSummary("Generates a DOCX document from a DOCX template and JSON payload.")
-    .Accepts<GenerateDocumentRequest>("multipart/form-data")
-    .Produces(StatusCodes.Status200OK, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-    .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
-    .Produces<ApiErrorResponse>(StatusCodes.Status500InternalServerError)
-    .DisableAntiforgery();
+app.MapEndpoints();
 
 app.Run();
 
 public partial class Program;
-

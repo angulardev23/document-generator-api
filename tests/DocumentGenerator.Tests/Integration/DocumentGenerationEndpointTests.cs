@@ -10,13 +10,21 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace DocumentGenerator.Tests.Integration;
 
-public sealed class DocumentGenerationEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Program> factory)
+    : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly WebApplicationFactory<Program> _factory = factory.WithWebHostBuilder(_ => { });
 
-    public DocumentGenerationEndpointTests(WebApplicationFactory<Program> factory)
+    [Fact]
+    public async Task GetHealth_ReturnsOk()
     {
-        _factory = factory.WithWebHostBuilder(_ => { });
+        using var client = _factory.CreateClient();
+
+        using var response = await client.GetAsync("/health");
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("ok", payload.RootElement.GetProperty("status").GetString());
     }
 
     [Fact]
