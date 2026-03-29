@@ -1,5 +1,5 @@
 using DocumentGenerator.Api.Configuration;
-using DocumentGenerator.Api.Endpoints;
+using DocumentGenerator.Api.Extensions;
 using DocumentGenerator.Api.ExceptionHandling;
 using DocumentGenerator.Application;
 using DocumentGenerator.Application.Documents;
