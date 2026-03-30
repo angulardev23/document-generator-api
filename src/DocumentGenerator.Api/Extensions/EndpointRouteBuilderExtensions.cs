@@ -15,7 +15,7 @@ public static class EndpointRouteBuilderExtensions
         foreach (var endpointType in endpointTypes)
         {
             var endpoint = (IEndpoint)Activator.CreateInstance(endpointType)!;
-            endpoint.MapEndpoint(endpoints);
+            endpoint.MapEndpoints(endpoints);
         }
 
         return endpoints;

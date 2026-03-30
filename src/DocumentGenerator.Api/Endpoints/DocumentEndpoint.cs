@@ -13,7 +13,7 @@ public sealed class DocumentEndpoint : IEndpoint
         "templates",
         InvestmentContractTemplateFileName);
 
-    public void MapEndpoint(IEndpointRouteBuilder endpoints)
+    public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var documentsGroup = endpoints.MapGroup("/api/documents");
 
@@ -33,7 +33,7 @@ public sealed class DocumentEndpoint : IEndpoint
                 GenerateInvestmentContractAsync)
             .WithName("GenerateInvestmentContract")
             .WithSummary("Generates the default investment contract DOCX from a JSON payload.")
-            .Accepts<JsonElement>("application/json")
+            .Accepts<GenerateInvestmentContractRequest>("application/json")
             .Produces(StatusCodes.Status200OK, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status500InternalServerError)
@@ -65,7 +65,7 @@ public sealed class DocumentEndpoint : IEndpoint
     }
 
     private static async Task<IResult> GenerateInvestmentContractAsync(
-        [FromBody] JsonElement data,
+        [FromBody] GenerateInvestmentContractRequest request,
         IDocumentGenerationUseCase useCase,
         CancellationToken cancellationToken)
     {
@@ -74,7 +74,7 @@ public sealed class DocumentEndpoint : IEndpoint
         var command = new GenerateDocumentCommand(
             InvestmentContractTemplateFileName,
             templateContent,
-            data.GetRawText());
+            JsonSerializer.Serialize(request));
 
         GeneratedDocumentResponse response = await useCase.GenerateAsync(command, cancellationToken);
 

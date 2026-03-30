@@ -2,7 +2,7 @@ namespace DocumentGenerator.Api.Endpoints;
 
 public sealed class HealthEndpoint : IEndpoint
 {
-    public void MapEndpoint(IEndpointRouteBuilder endpoints)
+    public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/health", () => Results.Ok(new { status = "ok" }))
             .WithName("HealthCheck")
