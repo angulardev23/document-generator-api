@@ -2,6 +2,8 @@
 
 Minimal ASP.NET Core microservice for generating `.docx` files fully in memory with `DocxTemplater`.
 
+Repository-managed example templates live in `templates/`.
+
 ## Projects
 
 - `DocumentGenerator.Api`: HTTP endpoint, Swagger, exception handling, and dependency injection.
@@ -23,6 +25,10 @@ Examples:
 - `{{title}}`
 - `{{customer.name}}`
 - `{{#items}}{{.name}}{{/items}}`
+
+Example repository template:
+
+- `templates/InvestmentContract.docx`
 
 ## Configuration
 
