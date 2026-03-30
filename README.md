@@ -16,9 +16,13 @@ Repository-managed example templates live in `templates/`.
 
 `POST /api/documents/generate`
 
+`POST /api/documents/investment-contract`
+
 - Content type: `multipart/form-data`
 - Form field `template`: required `.docx` template upload
 - Form field `data`: required JSON object string
+- Investment contract endpoint content type: `application/json`
+- Investment contract endpoint body: raw JSON object
 
 Examples:
 
@@ -77,4 +81,11 @@ docker run --rm -p 8080:8080 document-generator-api
 curl -X POST "http://localhost:5180/api/documents/generate" \
   -F "template=@./template.docx" \
   -F 'data={"title":"Hello","customer":{"name":"Jane"},"items":[{"name":"Item A"}]}'
+```
+
+```bash
+curl -X POST "http://localhost:5180/api/documents/investment-contract" \
+  -H "Content-Type: application/json" \
+  -d '{"ContractDate":"2026-03-30","FirstName":"Carlitos","LastName":"Escalante","CompanyName":"Example Ventures","InvestmentAmount":"100000 USD","EquityPercentage":"10%"}' \
+  -o investment-contract.docx
 ```

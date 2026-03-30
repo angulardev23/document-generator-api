@@ -101,6 +101,44 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
                      error.GetProperty("message").GetString()!.Contains("{{FirstName}}", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task PostInvestmentContract_WithValidJsonBody_ReturnsGeneratedDocx()
+    {
+        using var client = _factory.CreateClient();
+
+        using var response = await client.PostAsync(
+            "/api/documents/investment-contract",
+            new StringContent(
+                """
+                {
+                  "ContractDate": "2026-03-30",
+                  "FirstName": "Carlitos",
+                  "LastName": "Escalante",
+                  "CompanyName": "Example Ventures",
+                  "InvestmentAmount": "100000 USD",
+                  "EquityPercentage": "10%"
+                }
+                """,
+                Encoding.UTF8,
+                "application/json"));
+
+        var generatedBytes = await response.Content.ReadAsByteArrayAsync();
+        var documentText = ExtractDocumentText(generatedBytes);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains(
+            "attachment",
+            response.Content.Headers.ContentDisposition?.DispositionType ?? string.Empty,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Investment Contract", documentText, StringComparison.Ordinal);
+        Assert.Contains("Carlitos", documentText, StringComparison.Ordinal);
+        Assert.Contains("Escalante", documentText, StringComparison.Ordinal);
+        Assert.Contains("Example Ventures", documentText, StringComparison.Ordinal);
+    }
+
     private static string ExtractDocumentText(byte[] generatedBytes)
     {
         using var memoryStream = new MemoryStream(generatedBytes);

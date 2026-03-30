@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <None Include="..\..\Dockerfile" Link="Dockerfile" />
+    <Content Include="..\..\templates\**\*" Exclude="..\..\templates\~$*">
+      <Link>templates\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <PropertyGroup>

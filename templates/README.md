@@ -10,6 +10,7 @@ This folder contains reusable `.docx` templates for document generation.
 
 - `{{ContractDate}}`
 - `{{FirstName}}`
+- `{{LastName}}`
 - `{{CompanyName}}`
 - `{{InvestmentAmount}}`
 - `{{EquityPercentage}}`
