@@ -8,9 +8,17 @@ This folder contains reusable `.docx` templates for document generation.
 
 ## InvestmentContract placeholders
 
+Request-backed placeholders:
+
 - `{{ContractDate}}`
 - `{{FirstName}}`
 - `{{LastName}}`
 - `{{CompanyName}}`
 - `{{InvestmentAmount}}`
 - `{{EquityPercentage}}`
+
+Configuration-backed placeholders:
+
+- `{{BorrowerCompanyName}}`
+- `{{BorrowerCompanyAddress}}`
+- `{{BorrowerRegisterNumber}}`

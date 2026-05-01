@@ -133,10 +133,15 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
             "attachment",
             response.Content.Headers.ContentDisposition?.DispositionType ?? string.Empty,
             StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Investment Contract", documentText, StringComparison.Ordinal);
+        Assert.Contains("Borrower Company GmbH", documentText, StringComparison.Ordinal);
+        Assert.Contains("Example Street 1, 10115 Berlin, Germany", documentText, StringComparison.Ordinal);
+        Assert.Contains("HRB 123456 B", documentText, StringComparison.Ordinal);
+        Assert.Contains("2026-03-30", documentText, StringComparison.Ordinal);
         Assert.Contains("Carlitos", documentText, StringComparison.Ordinal);
         Assert.Contains("Escalante", documentText, StringComparison.Ordinal);
         Assert.Contains("Example Ventures", documentText, StringComparison.Ordinal);
+        Assert.Contains("100000 USD", documentText, StringComparison.Ordinal);
+        Assert.Contains("10", documentText, StringComparison.Ordinal);
     }
 
     private static string ExtractDocumentText(byte[] generatedBytes)

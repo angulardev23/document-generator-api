@@ -1,7 +1,9 @@
 using System.Text.Json;
 using DocumentGenerator.Api.Contracts;
+using DocumentGenerator.Api.Configuration;
 using DocumentGenerator.Application.Documents;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace DocumentGenerator.Api.Endpoints;
 
@@ -66,15 +68,29 @@ public sealed class DocumentEndpoint : IEndpoint
 
     private static async Task<IResult> GenerateInvestmentContractAsync(
         [FromBody] GenerateInvestmentContractRequest request,
+        IOptions<InvestmentContractOptions> options,
         IDocumentGenerationUseCase useCase,
         CancellationToken cancellationToken)
     {
         var templateContent = await File.ReadAllBytesAsync(InvestmentContractTemplatePath, cancellationToken);
 
+        var templateData = new GenerateInvestmentContractTemplateData
+        {
+            ContractDate = request.ContractDate,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            CompanyName = request.CompanyName,
+            InvestmentAmount = request.InvestmentAmount,
+            EquityPercentage = request.EquityPercentage,
+            BorrowerCompanyName = options.Value.BorrowerCompanyName,
+            BorrowerCompanyAddress = options.Value.BorrowerCompanyAddress,
+            BorrowerRegisterNumber = options.Value.BorrowerRegisterNumber
+        };
+
         var command = new GenerateDocumentCommand(
             InvestmentContractTemplateFileName,
             templateContent,
-            JsonSerializer.Serialize(request));
+            JsonSerializer.Serialize(templateData));
 
         GeneratedDocumentResponse response = await useCase.GenerateAsync(command, cancellationToken);
 

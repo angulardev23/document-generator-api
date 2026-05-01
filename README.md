@@ -43,6 +43,11 @@ Example repository template:
   "DocumentGeneration": {
     "MaxUploadFileSizeBytes": 5242880,
     "OutputFilenamePrefix": "generated-document"
+  },
+  "InvestmentContract": {
+    "BorrowerCompanyName": "Borrower Company GmbH",
+    "BorrowerCompanyAddress": "Example Street 1, 10115 Berlin, Germany",
+    "BorrowerRegisterNumber": "HRB 123456 B"
   }
 }
 ```
@@ -51,6 +56,9 @@ Environment variable examples:
 
 - `DocumentGeneration__MaxUploadFileSizeBytes=10485760`
 - `DocumentGeneration__OutputFilenamePrefix=contracts`
+- `InvestmentContract__BorrowerCompanyName=Borrower Company GmbH`
+- `InvestmentContract__BorrowerCompanyAddress=Example Street 1, 10115 Berlin, Germany`
+- `InvestmentContract__BorrowerRegisterNumber=HRB 123456 B`
 
 ## Local run
 
@@ -86,6 +94,6 @@ curl -X POST "http://localhost:5180/api/documents/generate" \
 ```bash
 curl -X POST "http://localhost:5180/api/documents/investment-contract" \
   -H "Content-Type: application/json" \
-  -d '{"ContractDate":"2026-03-30","FirstName":"Carlitos","LastName":"Escalante","CompanyName":"Example Ventures","InvestmentAmount":"100000 USD","EquityPercentage":"10%"}' \
+  -d '{"contractDate":"2026-03-30","firstName":"Carlitos","lastName":"Escalante","companyName":"Example Ventures","investmentAmount":"100000 USD","equityPercentage":"10"}' \
   -o investment-contract.docx
 ```

@@ -12,6 +12,11 @@ builder.Services
     .Bind(builder.Configuration.GetSection(DocumentGenerationOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services
+    .AddOptions<InvestmentContractOptions>()
+    .Bind(builder.Configuration.GetSection(InvestmentContractOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddSingleton<
     Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.Http.Features.FormOptions>,
