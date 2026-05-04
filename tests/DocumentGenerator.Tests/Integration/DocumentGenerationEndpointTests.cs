@@ -112,6 +112,7 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
                 """
                 {
                   "ContractDate": "2026-03-30",
+                  "LenderFullName": "Carlitos Escalante",
                   "FirstName": "Carlitos",
                   "LastName": "Escalante",
                   "CompanyName": "Example Ventures",
@@ -133,10 +134,11 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
             "attachment",
             response.Content.Headers.ContentDisposition?.DispositionType ?? string.Empty,
             StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Borrower Company GmbH", documentText, StringComparison.Ordinal);
-        Assert.Contains("Example Street 1, 10115 Berlin, Germany", documentText, StringComparison.Ordinal);
+        Assert.Contains("Venturice GmbH", documentText, StringComparison.Ordinal);
+        Assert.Contains("Wolframstraße 24, 70191 Stuttgart, Germany", documentText, StringComparison.Ordinal);
         Assert.Contains("HRB 123456 B", documentText, StringComparison.Ordinal);
         Assert.Contains("2026-03-30", documentText, StringComparison.Ordinal);
+        Assert.Contains("Carlitos Escalante", documentText, StringComparison.Ordinal);
         Assert.Contains("Carlitos", documentText, StringComparison.Ordinal);
         Assert.Contains("Escalante", documentText, StringComparison.Ordinal);
         Assert.Contains("Example Ventures", documentText, StringComparison.Ordinal);

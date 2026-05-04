@@ -77,6 +77,7 @@ public sealed class DocumentEndpoint : IEndpoint
         var templateData = new GenerateInvestmentContractTemplateData
         {
             ContractDate = request.ContractDate,
+            LenderFullName = request.LenderFullName,
             FirstName = request.FirstName,
             LastName = request.LastName,
             CompanyName = request.CompanyName,

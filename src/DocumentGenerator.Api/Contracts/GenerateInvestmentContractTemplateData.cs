@@ -4,6 +4,8 @@ public sealed class GenerateInvestmentContractTemplateData
 {
     public required string ContractDate { get; init; }
 
+    public required string LenderFullName { get; init; }
+
     public required string FirstName { get; init; }
 
     public required string LastName { get; init; }

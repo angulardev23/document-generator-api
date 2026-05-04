@@ -94,6 +94,6 @@ curl -X POST "http://localhost:5180/api/documents/generate" \
 ```bash
 curl -X POST "http://localhost:5180/api/documents/investment-contract" \
   -H "Content-Type: application/json" \
-  -d '{"contractDate":"2026-03-30","firstName":"Carlitos","lastName":"Escalante","companyName":"Example Ventures","investmentAmount":"100000 USD","equityPercentage":"10"}' \
+  -d '{"contractDate":"2026-03-30","lenderFullName":"Carlitos Escalante","firstName":"Carlitos","lastName":"Escalante","companyName":"Example Ventures","investmentAmount":"100000 USD","equityPercentage":"10"}' \
   -o investment-contract.docx
 ```

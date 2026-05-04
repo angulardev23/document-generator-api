@@ -11,6 +11,7 @@ This folder contains reusable `.docx` templates for document generation.
 Request-backed placeholders:
 
 - `{{ContractDate}}`
+- `{{LenderFullName}}`
 - `{{FirstName}}`
 - `{{LastName}}`
 - `{{CompanyName}}`
