@@ -23,6 +23,7 @@
     <RootNamespace>DocumentGenerator.Api</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>DocumentGenerator.Api-81ab13d7-1c50-4d71-a63e-b8c4ea2797f2</UserSecretsId>
   </PropertyGroup>
 
 </Project>

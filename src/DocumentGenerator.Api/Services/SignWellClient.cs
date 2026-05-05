@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DocumentGenerator.Api.Configuration;
@@ -49,7 +50,9 @@ public sealed class SignWellClient(
         };
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, BuildDocumentsUri());
-        httpRequest.Content = JsonContent.Create(payload);
+        httpRequest.Content = JsonContent.Create(
+            payload,
+            mediaType: new MediaTypeHeaderValue("application/json"));
 
         httpRequest.Headers.Add(SignWellApiKeyHeaderName, _options.ApiKey);
 
