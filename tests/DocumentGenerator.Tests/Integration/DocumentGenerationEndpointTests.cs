@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using DocumentGenerator.Api.Services;
 using DocumentGenerator.Domain.Documents;
 using DocumentGenerator.Domain.Services;
 using DocumentFormat.OpenXml;
@@ -163,6 +164,69 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
         Assert.Contains("10", documentText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task PostInvestmentContractSignWell_WithValidJsonBody_ReturnsSignWellUrl()
+    {
+        var fakePdfConverter = new FakeWordToPdfConverterService();
+        var fakeSignWellClient = new FakeSignWellClient();
+        using var factory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                var pdfConverterRegistration = services.SingleOrDefault(service => service.ServiceType == typeof(IWordToPdfConverterService));
+                if (pdfConverterRegistration is not null)
+                {
+                    services.Remove(pdfConverterRegistration);
+                }
+
+                var signWellRegistration = services.SingleOrDefault(service => service.ServiceType == typeof(ISignWellClient));
+                if (signWellRegistration is not null)
+                {
+                    services.Remove(signWellRegistration);
+                }
+
+                services.AddSingleton<IWordToPdfConverterService>(fakePdfConverter);
+                services.AddSingleton<ISignWellClient>(fakeSignWellClient);
+            });
+        });
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(
+            "/api/documents/investment-contract/signwell",
+            new StringContent(
+                """
+                {
+                  "ContractDate": "2026-03-30",
+                  "LenderFullName": "Carlitos Escalante",
+                  "LenderEmail": "carlitos@example.com",
+                  "FirstName": "Carlitos",
+                  "LastName": "Escalante",
+                  "CompanyName": "Example Ventures",
+                  "InvestmentAmount": "100000 USD",
+                  "EquityPercentage": "10%",
+                  "RedirectUrl": "https://app.example.com/contracts/signed"
+                }
+                """,
+                Encoding.UTF8,
+                "application/json"));
+
+        using var payload = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var generatedDocxBytes = fakePdfConverter.LastWordDocumentBytes;
+        var documentText = ExtractDocumentText(generatedDocxBytes);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("signwell-document-123", payload.RootElement.GetProperty("documentId").GetString());
+        Assert.Equal("https://www.signwell.com/docs/embedded/abc123", payload.RootElement.GetProperty("signWellUrl").GetString());
+        Assert.Equal("InvestmentContract.pdf", fakeSignWellClient.LastRequest?.FileName);
+        Assert.Equal("Carlitos Escalante", fakeSignWellClient.LastRequest?.RecipientName);
+        Assert.Equal("carlitos@example.com", fakeSignWellClient.LastRequest?.RecipientEmail);
+        Assert.Equal("https://app.example.com/contracts/signed", fakeSignWellClient.LastRequest?.RedirectUrl);
+        Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(fakeSignWellClient.LastUploadedPdfBytes), StringComparison.Ordinal);
+        Assert.Contains("Venturice GmbH", documentText, StringComparison.Ordinal);
+        Assert.Contains("Carlitos Escalante", documentText, StringComparison.Ordinal);
+    }
+
     private static string ExtractDocumentText(byte[] generatedBytes)
     {
         using var memoryStream = new MemoryStream(generatedBytes);
@@ -210,6 +274,29 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
 
             Stream pdfStream = new MemoryStream("%PDF-1.7\n% fake pdf\n"u8.ToArray());
             return new GeneratedDocument(pdfStream, "application/pdf");
+        }
+    }
+
+    private sealed class FakeSignWellClient : ISignWellClient
+    {
+        public SignWellCreateDocumentRequest? LastRequest { get; private set; }
+
+        public byte[] LastUploadedPdfBytes { get; private set; } = [];
+
+        public async Task<SignWellDocumentResponse> CreateDocumentAsync(
+            SignWellCreateDocumentRequest request,
+            CancellationToken cancellationToken)
+        {
+            LastRequest = request;
+
+            using var memoryStream = new MemoryStream();
+            request.Content.Position = 0;
+            await request.Content.CopyToAsync(memoryStream, cancellationToken);
+            LastUploadedPdfBytes = memoryStream.ToArray();
+
+            return new SignWellDocumentResponse(
+                "signwell-document-123",
+                "https://www.signwell.com/docs/embedded/abc123");
         }
     }
 }

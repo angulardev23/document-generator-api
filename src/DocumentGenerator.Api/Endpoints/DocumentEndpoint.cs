@@ -33,6 +33,17 @@ public sealed class DocumentEndpoint : IEndpoint
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status500InternalServerError)
             .DisableAntiforgery();
+
+        documentsGroup.MapPost(
+                "/investment-contract/signwell",
+                GenerateInvestmentContractSignWellAsync)
+            .WithName("GenerateInvestmentContractSignWell")
+            .WithSummary("Generates the default investment contract PDF, uploads it to SignWell, and returns the SignWell URL.")
+            .Accepts<GenerateInvestmentContractSignWellRequest>("application/json")
+            .Produces<GenerateInvestmentContractSignWellResponse>(StatusCodes.Status200OK, contentType: "application/json")
+            .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiErrorResponse>(StatusCodes.Status500InternalServerError)
+            .DisableAntiforgery();
     }
 
     private static async Task<IResult> GenerateAsync(
@@ -67,6 +78,16 @@ public sealed class DocumentEndpoint : IEndpoint
         GeneratedDocumentResponse response = await investmentContractDocumentService.GenerateAsync(request, cancellationToken);
 
         return CreateFileResult(response);
+    }
+
+    private static async Task<IResult> GenerateInvestmentContractSignWellAsync(
+        [FromBody] GenerateInvestmentContractSignWellRequest request,
+        IInvestmentContractDocumentService investmentContractDocumentService,
+        CancellationToken cancellationToken)
+    {
+        var response = await investmentContractDocumentService.GenerateAndUploadToSignWellAsync(request, cancellationToken);
+
+        return Results.Ok(response);
     }
 
     private static IResult CreateFileResult(GeneratedDocumentResponse response)

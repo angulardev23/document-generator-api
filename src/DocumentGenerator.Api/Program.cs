@@ -20,6 +20,9 @@ builder.Services
     .Bind(builder.Configuration.GetSection(InvestmentContractOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services
+    .AddOptions<SignWellOptions>()
+    .Bind(builder.Configuration.GetSection(SignWellOptions.SectionName));
 
 builder.Services.AddSingleton<IConfigureOptions<FormOptions>, ConfigureMultipartFormOptions>();
 builder.Services.AddApiServices();

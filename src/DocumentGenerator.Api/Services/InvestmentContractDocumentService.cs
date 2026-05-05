@@ -11,7 +11,8 @@ namespace DocumentGenerator.Api.Services;
 public sealed class InvestmentContractDocumentService(
     IOptions<InvestmentContractOptions> options,
     IDocumentGenerationUseCase documentGenerationUseCase,
-    IWordToPdfConverterService pdfConverter) : IInvestmentContractDocumentService
+    IWordToPdfConverterService pdfConverter,
+    ISignWellClient signWellClient) : IInvestmentContractDocumentService
 {
     private const string InvestmentContractTemplateFileName = "InvestmentContract.docx";
     private static readonly string InvestmentContractTemplatePath = Path.Combine(
@@ -23,17 +24,79 @@ public sealed class InvestmentContractDocumentService(
         GenerateInvestmentContractRequest request,
         CancellationToken cancellationToken)
     {
+        return await GeneratePdfAsync(
+            request.ContractDate,
+            request.LenderFullName,
+            request.FirstName,
+            request.LastName,
+            request.CompanyName,
+            request.InvestmentAmount,
+            request.EquityPercentage,
+            cancellationToken);
+    }
+
+    public async Task<GenerateInvestmentContractSignWellResponse> GenerateAndUploadToSignWellAsync(
+        GenerateInvestmentContractSignWellRequest request,
+        CancellationToken cancellationToken)
+    {
+        var generatedPdf = await GeneratePdfAsync(
+            request.ContractDate,
+            request.LenderFullName,
+            request.FirstName,
+            request.LastName,
+            request.CompanyName,
+            request.InvestmentAmount,
+            request.EquityPercentage,
+            cancellationToken);
+
+        try
+        {
+            generatedPdf.Content.Position = 0;
+
+            var signWellResponse = await signWellClient.CreateDocumentAsync(
+                new SignWellCreateDocumentRequest(
+                    generatedPdf.FileName,
+                    generatedPdf.Content,
+                    request.LenderFullName,
+                    request.LenderEmail,
+                    request.RedirectUrl),
+                cancellationToken);
+
+            return new GenerateInvestmentContractSignWellResponse(
+                signWellResponse.DocumentId,
+                signWellResponse.SignWellUrl);
+        }
+        catch (ValidationException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new DocumentSigningException("SignWell upload failed.", exception);
+        }
+    }
+
+    private async Task<GeneratedDocumentResponse> GeneratePdfAsync(
+        string contractDate,
+        string lenderFullName,
+        string firstName,
+        string lastName,
+        string companyName,
+        string investmentAmount,
+        string equityPercentage,
+        CancellationToken cancellationToken)
+    {
         var templateContent = await File.ReadAllBytesAsync(InvestmentContractTemplatePath, cancellationToken);
 
         var templateData = new GenerateInvestmentContractTemplateData
         {
-            ContractDate = request.ContractDate,
-            LenderFullName = request.LenderFullName,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            CompanyName = request.CompanyName,
-            InvestmentAmount = request.InvestmentAmount,
-            EquityPercentage = request.EquityPercentage,
+            ContractDate = contractDate,
+            LenderFullName = lenderFullName,
+            FirstName = firstName,
+            LastName = lastName,
+            CompanyName = companyName,
+            InvestmentAmount = investmentAmount,
+            EquityPercentage = equityPercentage,
             BorrowerCompanyName = options.Value.BorrowerCompanyName,
             BorrowerCompanyAddress = options.Value.BorrowerCompanyAddress,
             BorrowerRegisterNumber = options.Value.BorrowerRegisterNumber

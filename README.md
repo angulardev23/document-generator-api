@@ -1,6 +1,6 @@
 # Document Generator API
 
-Minimal ASP.NET Core microservice for generating `.docx` files fully in memory with `DocxTemplater`, with PDF output for the investment contract endpoint.
+Minimal ASP.NET Core microservice for generating `.docx` files fully in memory with `DocxTemplater`, with PDF output for the investment contract endpoint and SignWell handoff support.
 
 Repository-managed example templates live in `templates/`.
 
@@ -18,12 +18,17 @@ Repository-managed example templates live in `templates/`.
 
 `POST /api/documents/investment-contract`
 
+`POST /api/documents/investment-contract/signwell`
+
 - Content type: `multipart/form-data`
 - Form field `template`: required `.docx` template upload
 - Form field `data`: required JSON object string
 - Investment contract endpoint request content type: `application/json`
 - Investment contract endpoint body: raw JSON object
 - Investment contract endpoint response content type: `application/pdf`
+- SignWell endpoint request content type: `application/json`
+- SignWell endpoint body: investment contract payload plus `lenderEmail` and optional `redirectUrl`
+- SignWell endpoint response content type: `application/json`
 
 Examples:
 
@@ -49,6 +54,11 @@ Example repository template:
     "BorrowerCompanyName": "Borrower Company GmbH",
     "BorrowerCompanyAddress": "Example Street 1, 10115 Berlin, Germany",
     "BorrowerRegisterNumber": "HRB 123456 B"
+  },
+  "SignWell": {
+    "BaseUrl": "https://www.signwell.com",
+    "ApiKey": "your-signwell-api-key",
+    "TestMode": true
   }
 }
 ```
@@ -60,6 +70,9 @@ Environment variable examples:
 - `InvestmentContract__BorrowerCompanyName=Borrower Company GmbH`
 - `InvestmentContract__BorrowerCompanyAddress=Example Street 1, 10115 Berlin, Germany`
 - `InvestmentContract__BorrowerRegisterNumber=HRB 123456 B`
+- `SignWell__BaseUrl=https://www.signwell.com`
+- `SignWell__ApiKey=your-signwell-api-key`
+- `SignWell__TestMode=true`
 
 ## Local run
 
@@ -99,4 +112,10 @@ curl -X POST "http://localhost:5180/api/documents/investment-contract" \
   -H "Content-Type: application/json" \
   -d '{"contractDate":"2026-03-30","lenderFullName":"Carlitos Escalante","firstName":"Carlitos","lastName":"Escalante","companyName":"Example Ventures","investmentAmount":"100000 USD","equityPercentage":"10"}' \
   -o investment-contract.pdf
+```
+
+```bash
+curl -X POST "http://localhost:5180/api/documents/investment-contract/signwell" \
+  -H "Content-Type: application/json" \
+  -d '{"contractDate":"2026-03-30","lenderFullName":"Carlitos Escalante","lenderEmail":"carlitos@example.com","firstName":"Carlitos","lastName":"Escalante","companyName":"Example Ventures","investmentAmount":"100000 USD","equityPercentage":"10","redirectUrl":"https://app.example.com/contracts/signed"}'
 ```
