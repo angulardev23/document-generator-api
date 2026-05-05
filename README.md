@@ -1,6 +1,6 @@
 # Document Generator API
 
-Minimal ASP.NET Core microservice for generating `.docx` files fully in memory with `DocxTemplater`.
+Minimal ASP.NET Core microservice for generating `.docx` files fully in memory with `DocxTemplater`, with PDF output for the investment contract endpoint.
 
 Repository-managed example templates live in `templates/`.
 
@@ -21,8 +21,9 @@ Repository-managed example templates live in `templates/`.
 - Content type: `multipart/form-data`
 - Form field `template`: required `.docx` template upload
 - Form field `data`: required JSON object string
-- Investment contract endpoint content type: `application/json`
+- Investment contract endpoint request content type: `application/json`
 - Investment contract endpoint body: raw JSON object
+- Investment contract endpoint response content type: `application/pdf`
 
 Examples:
 
@@ -83,6 +84,8 @@ docker build -t document-generator-api .
 docker run --rm -p 8080:8080 document-generator-api
 ```
 
+The container image installs `libreoffice-writer` because the investment contract endpoint converts the generated DOCX to PDF with LibreOffice.
+
 ## Curl example
 
 ```bash
@@ -95,5 +98,5 @@ curl -X POST "http://localhost:5180/api/documents/generate" \
 curl -X POST "http://localhost:5180/api/documents/investment-contract" \
   -H "Content-Type: application/json" \
   -d '{"contractDate":"2026-03-30","lenderFullName":"Carlitos Escalante","firstName":"Carlitos","lastName":"Escalante","companyName":"Example Ventures","investmentAmount":"100000 USD","equityPercentage":"10"}' \
-  -o investment-contract.docx
+  -o investment-contract.pdf
 ```

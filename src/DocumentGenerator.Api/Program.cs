@@ -1,9 +1,12 @@
+using DocumentGenerator.Api;
 using DocumentGenerator.Api.Configuration;
 using DocumentGenerator.Api.Extensions;
 using DocumentGenerator.Api.ExceptionHandling;
 using DocumentGenerator.Application;
 using DocumentGenerator.Application.Documents;
 using DocumentGenerator.Infrastructure;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -18,9 +21,8 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddSingleton<
-    Microsoft.Extensions.Options.IConfigureOptions<Microsoft.AspNetCore.Http.Features.FormOptions>,
-    ConfigureMultipartFormOptions>();
+builder.Services.AddSingleton<IConfigureOptions<FormOptions>, ConfigureMultipartFormOptions>();
+builder.Services.AddApiServices();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

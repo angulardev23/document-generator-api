@@ -3,10 +3,13 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using DocumentGenerator.Domain.Documents;
+using DocumentGenerator.Domain.Services;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DocumentGenerator.Tests.Integration;
 
@@ -102,9 +105,23 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
     }
 
     [Fact]
-    public async Task PostInvestmentContract_WithValidJsonBody_ReturnsGeneratedDocx()
+    public async Task PostInvestmentContract_WithValidJsonBody_ReturnsGeneratedPdf()
     {
-        using var client = _factory.CreateClient();
+        var fakePdfConverter = new FakeWordToPdfConverterService();
+        using var factory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                var existingRegistration = services.SingleOrDefault(service => service.ServiceType == typeof(IWordToPdfConverterService));
+                if (existingRegistration is not null)
+                {
+                    services.Remove(existingRegistration);
+                }
+
+                services.AddSingleton<IWordToPdfConverterService>(fakePdfConverter);
+            });
+        });
+        using var client = factory.CreateClient();
 
         using var response = await client.PostAsync(
             "/api/documents/investment-contract",
@@ -124,16 +141,16 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
                 "application/json"));
 
         var generatedBytes = await response.Content.ReadAsByteArrayAsync();
-        var documentText = ExtractDocumentText(generatedBytes);
+        var generatedDocxBytes = fakePdfConverter.LastWordDocumentBytes;
+        var documentText = ExtractDocumentText(generatedDocxBytes);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
         Assert.Contains(
             "attachment",
             response.Content.Headers.ContentDisposition?.DispositionType ?? string.Empty,
             StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(generatedBytes), StringComparison.Ordinal);
         Assert.Contains("Venturice GmbH", documentText, StringComparison.Ordinal);
         Assert.Contains("Wolframstraße 24, 70191 Stuttgart, Germany", documentText, StringComparison.Ordinal);
         Assert.Contains("HRB 123456 B", documentText, StringComparison.Ordinal);
@@ -176,6 +193,23 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
             }
 
             return memoryStream.ToArray();
+        }
+    }
+
+    private sealed class FakeWordToPdfConverterService : IWordToPdfConverterService
+    {
+        public byte[] LastWordDocumentBytes { get; private set; } = [];
+
+        public async Task<GeneratedDocument> ConvertAsync(
+            Stream wordDocumentStream,
+            CancellationToken cancellationToken)
+        {
+            using var memoryStream = new MemoryStream();
+            await wordDocumentStream.CopyToAsync(memoryStream, cancellationToken);
+            LastWordDocumentBytes = memoryStream.ToArray();
+
+            Stream pdfStream = new MemoryStream("%PDF-1.7\n% fake pdf\n"u8.ToArray());
+            return new GeneratedDocument(pdfStream, "application/pdf");
         }
     }
 }

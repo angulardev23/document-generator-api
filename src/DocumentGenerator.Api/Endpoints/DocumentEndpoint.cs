@@ -1,20 +1,13 @@
 using System.Text.Json;
 using DocumentGenerator.Api.Contracts;
-using DocumentGenerator.Api.Configuration;
+using DocumentGenerator.Api.Services;
 using DocumentGenerator.Application.Documents;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 namespace DocumentGenerator.Api.Endpoints;
 
 public sealed class DocumentEndpoint : IEndpoint
 {
-    private const string InvestmentContractTemplateFileName = "InvestmentContract.docx";
-    private static readonly string InvestmentContractTemplatePath = Path.Combine(
-        AppContext.BaseDirectory,
-        "templates",
-        InvestmentContractTemplateFileName);
-
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         var documentsGroup = endpoints.MapGroup("/api/documents");
@@ -34,9 +27,9 @@ public sealed class DocumentEndpoint : IEndpoint
                 "/investment-contract",
                 GenerateInvestmentContractAsync)
             .WithName("GenerateInvestmentContract")
-            .WithSummary("Generates the default investment contract DOCX from a JSON payload.")
+            .WithSummary("Generates the default investment contract PDF from a JSON payload.")
             .Accepts<GenerateInvestmentContractRequest>("application/json")
-            .Produces(StatusCodes.Status200OK, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            .Produces(StatusCodes.Status200OK, contentType: "application/pdf")
             .Produces<ApiErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiErrorResponse>(StatusCodes.Status500InternalServerError)
             .DisableAntiforgery();
@@ -68,32 +61,10 @@ public sealed class DocumentEndpoint : IEndpoint
 
     private static async Task<IResult> GenerateInvestmentContractAsync(
         [FromBody] GenerateInvestmentContractRequest request,
-        IOptions<InvestmentContractOptions> options,
-        IDocumentGenerationUseCase useCase,
+        IInvestmentContractDocumentService investmentContractDocumentService,
         CancellationToken cancellationToken)
     {
-        var templateContent = await File.ReadAllBytesAsync(InvestmentContractTemplatePath, cancellationToken);
-
-        var templateData = new GenerateInvestmentContractTemplateData
-        {
-            ContractDate = request.ContractDate,
-            LenderFullName = request.LenderFullName,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            CompanyName = request.CompanyName,
-            InvestmentAmount = request.InvestmentAmount,
-            EquityPercentage = request.EquityPercentage,
-            BorrowerCompanyName = options.Value.BorrowerCompanyName,
-            BorrowerCompanyAddress = options.Value.BorrowerCompanyAddress,
-            BorrowerRegisterNumber = options.Value.BorrowerRegisterNumber
-        };
-
-        var command = new GenerateDocumentCommand(
-            InvestmentContractTemplateFileName,
-            templateContent,
-            JsonSerializer.Serialize(templateData));
-
-        GeneratedDocumentResponse response = await useCase.GenerateAsync(command, cancellationToken);
+        GeneratedDocumentResponse response = await investmentContractDocumentService.GenerateAsync(request, cancellationToken);
 
         return CreateFileResult(response);
     }
