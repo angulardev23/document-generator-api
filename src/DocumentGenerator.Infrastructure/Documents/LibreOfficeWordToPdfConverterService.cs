@@ -160,6 +160,11 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
             CreateNoWindow = true
         };
         startInfo.ArgumentList.Add("--headless");
+        startInfo.ArgumentList.Add("--nologo");
+        startInfo.ArgumentList.Add("--nodefault");
+        startInfo.ArgumentList.Add("--nofirststartwizard");
+        startInfo.ArgumentList.Add("--nolockcheck");
+        startInfo.ArgumentList.Add("--norestore");
         startInfo.ArgumentList.Add("--convert-to");
         startInfo.ArgumentList.Add("pdf:writer_pdf_Export");
         startInfo.ArgumentList.Add("--outdir");

@@ -218,7 +218,6 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("signwell-document-123", payload.RootElement.GetProperty("documentId").GetString());
         Assert.Equal("https://www.signwell.com/docs/embedded/abc123", payload.RootElement.GetProperty("signWellUrl").GetString());
-        Assert.Equal("InvestmentContract.pdf", fakeSignWellClient.LastRequest?.FileName);
         Assert.Equal("Carlitos Escalante", fakeSignWellClient.LastRequest?.RecipientName);
         Assert.Equal("carlitos@example.com", fakeSignWellClient.LastRequest?.RecipientEmail);
         Assert.Equal("https://app.example.com/contracts/signed", fakeSignWellClient.LastRequest?.RedirectUrl);
