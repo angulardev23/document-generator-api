@@ -14,7 +14,13 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libreoffice-writer \
+    && apt-get install -y --no-install-recommends \
+        libreoffice \
+        libreoffice-writer \
+        unoconv \
+        python3-setuptools \
+        fonts-dejavu \
+        fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 ENV ASPNETCORE_URLS=http://+:8080

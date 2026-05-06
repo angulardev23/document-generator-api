@@ -7,11 +7,10 @@ namespace DocumentGenerator.Infrastructure.Documents;
 public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterService
 {
     private const string PdfContentType = "application/pdf";
-    private static readonly string[] ExecutableCandidates =
-    [
-        "soffice",
-        "libreoffice"
-    ];
+    private const string InputFileName = "document.docx";
+    private const string OutputFileName = "document.pdf";
+    private static readonly SemaphoreSlim ConversionSemaphore = new(1, 1);
+    private static readonly TimeSpan ConversionTimeout = TimeSpan.FromSeconds(30);
 
     public async Task<GeneratedDocument> ConvertAsync(
         Stream wordDocumentStream,
@@ -20,27 +19,40 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
         ArgumentNullException.ThrowIfNull(wordDocumentStream);
         ResetStream(wordDocumentStream, cancellationToken);
 
-        var workingDirectory = CreateWorkingDirectory();
-        var inputPath = Path.Combine(workingDirectory, "document.docx");
-        var outputPath = Path.Combine(workingDirectory, "document.pdf");
+        var semaphoreAcquired = false;
+        string? workingDirectory = null;
 
         try
         {
+            await ConversionSemaphore.WaitAsync(cancellationToken);
+            semaphoreAcquired = true;
+
+            workingDirectory = CreateWorkingDirectory();
+            var inputPath = Path.Combine(workingDirectory, InputFileName);
+            var outputPath = Path.Combine(workingDirectory, OutputFileName);
+
             await WriteInputDocumentAsync(wordDocumentStream, inputPath, cancellationToken);
-            var conversionOutput = await ConvertDocumentAsync(inputPath, workingDirectory, cancellationToken);
+            var conversionOutput = await ConvertDocumentAsync(workingDirectory, cancellationToken);
 
             return await ReadGeneratedDocumentAsync(outputPath, conversionOutput, cancellationToken);
         }
         finally
         {
-            TryDeleteDirectory(workingDirectory);
+            if (workingDirectory is not null)
+            {
+                TryDeleteDirectory(workingDirectory);
+            }
+
+            if (semaphoreAcquired)
+            {
+                ConversionSemaphore.Release();
+            }
         }
     }
 
-    private static Process StartConversionProcess(string inputPath, string outputDirectory)
+    private static Process StartConversionProcess(ConversionCommand conversionCommand, string workingDirectory)
     {
-        var executablePath = ResolveExecutablePath();
-        var startInfo = CreateStartInfo(executablePath, inputPath, outputDirectory);
+        var startInfo = CreateStartInfo(conversionCommand, workingDirectory);
         var process = new Process
         {
             StartInfo = startInfo
@@ -81,18 +93,20 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
     }
 
     private static async Task<ConversionOutput> ConvertDocumentAsync(
-        string inputPath,
-        string outputDirectory,
+        string workingDirectory,
         CancellationToken cancellationToken)
     {
-        using var process = StartConversionProcess(inputPath, outputDirectory);
+        var conversionCommand = CreateConversionCommand(workingDirectory);
+
+        using var process = StartConversionProcess(conversionCommand, workingDirectory);
         var standardOutputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var standardErrorTask = process.StandardError.ReadToEndAsync(cancellationToken);
 
-        await WaitForExitOrKillAsync(process, cancellationToken);
+        await WaitForExitOrKillAsync(process, conversionCommand, standardOutputTask, standardErrorTask, cancellationToken);
 
         var conversionOutput = new ConversionOutput(
             process.ExitCode,
+            conversionCommand.BackendName,
             await standardOutputTask,
             await standardErrorTask);
 
@@ -114,15 +128,40 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
         return new GeneratedDocument(outputStream, PdfContentType);
     }
 
-    private static async Task WaitForExitOrKillAsync(Process process, CancellationToken cancellationToken)
+    private static async Task WaitForExitOrKillAsync(
+        Process process,
+        ConversionCommand conversionCommand,
+        Task<string> standardOutputTask,
+        Task<string> standardErrorTask,
+        CancellationToken cancellationToken)
     {
+        using var timeoutCancellationTokenSource = new CancellationTokenSource(ConversionTimeout);
+        using var linkedCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            timeoutCancellationTokenSource.Token);
+
         try
         {
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(linkedCancellationTokenSource.Token);
+        }
+        catch (OperationCanceledException) when (timeoutCancellationTokenSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            TryKill(process);
+            await process.WaitForExitAsync(CancellationToken.None);
+
+            var conversionOutput = new ConversionOutput(
+                process.ExitCode,
+                conversionCommand.BackendName,
+                await standardOutputTask,
+                await standardErrorTask);
+
+            throw new TimeoutException(
+                $"{conversionOutput.BackendName} PDF conversion timed out after {ConversionTimeout.TotalSeconds:0} seconds. Stdout: {conversionOutput.StandardOutput} Stderr: {conversionOutput.StandardError}");
         }
         catch (OperationCanceledException)
         {
             TryKill(process);
+            await process.WaitForExitAsync(CancellationToken.None);
             throw;
         }
     }
@@ -135,7 +174,7 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
         }
 
         throw new InvalidOperationException(
-            $"LibreOffice PDF conversion failed with exit code {conversionOutput.ExitCode}. Stdout: {conversionOutput.StandardOutput} Stderr: {conversionOutput.StandardError}");
+            $"{conversionOutput.BackendName} PDF conversion failed with exit code {conversionOutput.ExitCode}. Stdout: {conversionOutput.StandardOutput} Stderr: {conversionOutput.StandardError}");
     }
 
     private static void EnsureOutputExists(string outputPath, ConversionOutput conversionOutput)
@@ -146,92 +185,60 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
         }
 
         throw new InvalidOperationException(
-            $"LibreOffice PDF conversion did not produce '{outputPath}'. Stdout: {conversionOutput.StandardOutput} Stderr: {conversionOutput.StandardError}");
+            $"{conversionOutput.BackendName} PDF conversion did not produce '{outputPath}'. Stdout: {conversionOutput.StandardOutput} Stderr: {conversionOutput.StandardError}");
     }
 
-    private static ProcessStartInfo CreateStartInfo(string executablePath, string inputPath, string outputDirectory)
+    private static ProcessStartInfo CreateStartInfo(ConversionCommand conversionCommand, string workingDirectory)
     {
         var startInfo = new ProcessStartInfo
         {
-            FileName = executablePath,
+            FileName = conversionCommand.ExecutablePath,
+            WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        startInfo.ArgumentList.Add("--headless");
-        startInfo.ArgumentList.Add("--nologo");
-        startInfo.ArgumentList.Add("--nodefault");
-        startInfo.ArgumentList.Add("--nofirststartwizard");
-        startInfo.ArgumentList.Add("--nolockcheck");
-        startInfo.ArgumentList.Add("--norestore");
-        startInfo.ArgumentList.Add("--convert-to");
-        startInfo.ArgumentList.Add("pdf:writer_pdf_Export");
-        startInfo.ArgumentList.Add("--outdir");
-        startInfo.ArgumentList.Add(outputDirectory);
-        startInfo.ArgumentList.Add(inputPath);
+
+        foreach (var argument in conversionCommand.Arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
 
         return startInfo;
     }
 
-    private static string ResolveExecutablePath()
+    private static ConversionCommand CreateConversionCommand(string workingDirectory)
     {
-        var executablePath = GetExecutableCandidates()
-            .Select(TryResolveExecutablePath)
-            .FirstOrDefault(path => !string.IsNullOrWhiteSpace(path));
-
-        if (!string.IsNullOrWhiteSpace(executablePath))
+        if (OperatingSystem.IsMacOS())
         {
-            return executablePath;
+            var sofficePath = ExecutablePathResolver.ResolveLibreOfficePath();
+
+            return new ConversionCommand(
+                "soffice",
+                sofficePath,
+                [
+                    "--headless",
+                    "--convert-to",
+                    "pdf:writer_pdf_Export",
+                    "--outdir",
+                    workingDirectory,
+                    Path.Combine(workingDirectory, InputFileName)
+                ]);
         }
 
-        throw new InvalidOperationException(
-            "LibreOffice executable was not found. Configure SOFFICE_PATH or install LibreOffice.");
-    }
+        var unoconvPath = ExecutablePathResolver.ResolveUnoconvPath();
 
-    private static IEnumerable<string> GetExecutableCandidates()
-    {
-        var configuredPath = Environment.GetEnvironmentVariable("SOFFICE_PATH");
-        if (!string.IsNullOrWhiteSpace(configuredPath))
-        {
-            yield return configuredPath;
-        }
-
-        configuredPath = Environment.GetEnvironmentVariable("LIBREOFFICE_PATH");
-        if (!string.IsNullOrWhiteSpace(configuredPath))
-        {
-            yield return configuredPath;
-        }
-
-        foreach (var candidate in ExecutableCandidates)
-        {
-            yield return candidate;
-        }
-    }
-
-    private static string? TryResolveExecutablePath(string candidate)
-    {
-        if (Path.IsPathRooted(candidate))
-        {
-            return File.Exists(candidate) ? candidate : null;
-        }
-
-        var pathValue = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrWhiteSpace(pathValue))
-        {
-            return null;
-        }
-
-        foreach (var directory in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var resolvedPath = Path.Combine(directory, candidate);
-            if (File.Exists(resolvedPath))
-            {
-                return resolvedPath;
-            }
-        }
-
-        return null;
+        return new ConversionCommand(
+            "unoconv",
+            unoconvPath,
+            [
+                "-f",
+                "pdf",
+                "-o",
+                OutputFileName,
+                InputFileName
+            ]);
     }
 
     private static void TryKill(Process process)
@@ -266,6 +273,12 @@ public sealed class LibreOfficeWordToPdfConverterService : IWordToPdfConverterSe
 
     private sealed record ConversionOutput(
         int ExitCode,
+        string BackendName,
         string StandardOutput,
         string StandardError);
+
+    private sealed record ConversionCommand(
+        string BackendName,
+        string ExecutablePath,
+        IReadOnlyCollection<string> Arguments);
 }

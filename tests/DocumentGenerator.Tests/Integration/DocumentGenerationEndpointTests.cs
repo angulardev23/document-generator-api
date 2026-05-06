@@ -11,13 +11,18 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using DocumentGenerator.Infrastructure.Documents;
 
 namespace DocumentGenerator.Tests.Integration;
 
 public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory = factory.WithWebHostBuilder(_ => { });
+    private readonly WebApplicationFactory<Program> _factory = factory.WithWebHostBuilder(builder =>
+    {
+        builder.ConfigureServices(RemoveLibreOfficeHostedService);
+    });
 
     [Fact]
     public async Task GetHealth_ReturnsOk()
@@ -119,6 +124,8 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
                     services.Remove(existingRegistration);
                 }
 
+                RemoveLibreOfficeHostedService(services);
+
                 services.AddSingleton<IWordToPdfConverterService>(fakePdfConverter);
             });
         });
@@ -178,6 +185,8 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
                 {
                     services.Remove(pdfConverterRegistration);
                 }
+
+                RemoveLibreOfficeHostedService(services);
 
                 var signWellRegistration = services.SingleOrDefault(service => service.ServiceType == typeof(ISignWellClient));
                 if (signWellRegistration is not null)
@@ -273,6 +282,18 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
 
             Stream pdfStream = new MemoryStream("%PDF-1.7\n% fake pdf\n"u8.ToArray());
             return new GeneratedDocument(pdfStream, "application/pdf");
+        }
+    }
+
+    private static void RemoveLibreOfficeHostedService(IServiceCollection services)
+    {
+        var hostedServiceRegistration = services.SingleOrDefault(service =>
+            service.ServiceType == typeof(IHostedService) &&
+            service.ImplementationType == typeof(LibreOfficeHostedService));
+
+        if (hostedServiceRegistration is not null)
+        {
+            services.Remove(hostedServiceRegistration);
         }
     }
 
