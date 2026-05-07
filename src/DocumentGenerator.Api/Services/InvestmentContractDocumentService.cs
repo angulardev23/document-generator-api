@@ -19,6 +19,9 @@ public sealed class InvestmentContractDocumentService(
         AppContext.BaseDirectory,
         "templates",
         InvestmentContractTemplateFileName);
+    private static readonly Lazy<byte[]> InvestmentContractTemplateContent = new(
+        () => File.ReadAllBytes(InvestmentContractTemplatePath),
+        LazyThreadSafetyMode.ExecutionAndPublication);
 
     public async Task<GeneratedDocumentResponse> GenerateAsync(
         GenerateInvestmentContractRequest request,
@@ -74,6 +77,10 @@ public sealed class InvestmentContractDocumentService(
         {
             throw new DocumentSigningException("SignWell upload failed.", exception);
         }
+        finally
+        {
+            await generatedPdf.Content.DisposeAsync();
+        }
     }
 
     private async Task<GeneratedDocumentResponse> GeneratePdfAsync(
@@ -86,8 +93,6 @@ public sealed class InvestmentContractDocumentService(
         string equityPercentage,
         CancellationToken cancellationToken)
     {
-        var templateContent = await File.ReadAllBytesAsync(InvestmentContractTemplatePath, cancellationToken);
-
         var templateData = new GenerateInvestmentContractTemplateData
         {
             ContractDate = contractDate,
@@ -104,7 +109,7 @@ public sealed class InvestmentContractDocumentService(
 
         var command = new GenerateDocumentCommand(
             InvestmentContractTemplateFileName,
-            templateContent,
+            InvestmentContractTemplateContent.Value,
             JsonSerializer.Serialize(templateData));
 
         var generatedDocument = await documentGenerationUseCase.GenerateAsync(command, cancellationToken);
@@ -127,13 +132,13 @@ public sealed class InvestmentContractDocumentService(
                 generatedPdf.ContentType,
                 Path.ChangeExtension(response.FileName, ".pdf"));
         }
-        catch (ValidationException)
-        {
-            throw;
-        }
         catch (Exception exception)
         {
             throw new DocumentProcessingException("PDF conversion failed.", exception);
+        }
+        finally
+        {
+            await response.Content.DisposeAsync();
         }
     }
 }
