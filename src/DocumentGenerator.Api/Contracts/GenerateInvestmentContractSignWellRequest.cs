@@ -2,6 +2,10 @@ namespace DocumentGenerator.Api.Contracts;
 
 public sealed class GenerateInvestmentContractSignWellRequest
 {
+    public required string ListingId { get; init; }
+
+    public required string UserId { get; init; }
+
     public required string ContractDate { get; init; }
 
     public required string LenderFullName { get; init; }
