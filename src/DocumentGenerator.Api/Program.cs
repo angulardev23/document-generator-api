@@ -5,6 +5,7 @@ using DocumentGenerator.Api.ExceptionHandling;
 using DocumentGenerator.Application;
 using DocumentGenerator.Application.Documents;
 using DocumentGenerator.Infrastructure;
+using DocumentGenerator.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 
@@ -27,13 +28,15 @@ builder.Services
 builder.Services.AddSingleton<IConfigureOptions<FormOptions>, ConfigureMultipartFormOptions>();
 builder.Services.AddApiServices();
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 await using WebApplication app = builder.Build();
+
+await app.Services.InitializeDatabaseAsync();
 
 app.UseExceptionHandler();
 app.UseSwagger();

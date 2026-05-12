@@ -4,13 +4,18 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using DocumentGenerator.Api.Services;
+using DocumentGenerator.Domain.InvestmentContracts;
 using DocumentGenerator.Domain.Documents;
 using DocumentGenerator.Domain.Services;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentGenerator.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using DocumentGenerator.Infrastructure.Documents;
 
@@ -21,7 +26,11 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
 {
     private readonly WebApplicationFactory<Program> _factory = factory.WithWebHostBuilder(builder =>
     {
-        builder.ConfigureServices(RemoveLibreOfficeHostedService);
+        builder.ConfigureServices(services =>
+        {
+            ReplaceDatabaseWithInMemory(services);
+            RemoveLibreOfficeHostedService(services);
+        });
     });
 
     [Fact]
@@ -205,6 +214,8 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
             new StringContent(
                 """
                 {
+                  "ListingId": "investment-123",
+                  "UserId": "user-456",
                   "ContractDate": "2026-03-30",
                   "LenderFullName": "Carlitos Escalante",
                   "LenderEmail": "carlitos@example.com",
@@ -233,6 +244,17 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(fakeSignWellClient.LastUploadedPdfBytes), StringComparison.Ordinal);
         Assert.Contains("Venturice GmbH", documentText, StringComparison.Ordinal);
         Assert.Contains("Carlitos Escalante", documentText, StringComparison.Ordinal);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<DocumentGeneratorDbContext>();
+        var investmentContract = await dbContext.InvestmentContracts.SingleAsync();
+
+        Assert.Equal("investment-123", investmentContract.ListingId);
+        Assert.Equal("user-456", investmentContract.UserId);
+        Assert.Equal("signwell-document-123", investmentContract.SignWellDocumentId);
+        Assert.Equal(InvestmentContract.PendingSignatureStatus, investmentContract.Status);
+        Assert.NotEqual(default, investmentContract.CreatedAt);
+        Assert.NotEqual(default, investmentContract.UpdatedAt);
     }
 
     private static string ExtractDocumentText(byte[] generatedBytes)
@@ -295,6 +317,17 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
         {
             services.Remove(hostedServiceRegistration);
         }
+    }
+
+    private static void ReplaceDatabaseWithInMemory(IServiceCollection services)
+    {
+        services.RemoveAll<DocumentGeneratorDbContext>();
+        services.RemoveAll<DbContextOptions<DocumentGeneratorDbContext>>();
+        services.RemoveAll<DbContextOptions>();
+        services.RemoveAll<IDbContextOptionsConfiguration<DocumentGeneratorDbContext>>();
+
+        services.AddDbContext<DocumentGeneratorDbContext>(options =>
+            options.UseInMemoryDatabase("document-generator-tests"));
     }
 
     private sealed class FakeSignWellClient : ISignWellClient

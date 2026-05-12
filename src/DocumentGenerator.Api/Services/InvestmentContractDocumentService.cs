@@ -3,6 +3,7 @@ using DocumentGenerator.Api.Configuration;
 using DocumentGenerator.Api.Contracts;
 using DocumentGenerator.Application.Documents;
 using DocumentGenerator.Application.Exceptions;
+using DocumentGenerator.Domain.InvestmentContracts;
 using DocumentGenerator.Domain.Services;
 using Microsoft.Extensions.Options;
 
@@ -12,7 +13,8 @@ public sealed class InvestmentContractDocumentService(
     IOptions<InvestmentContractOptions> options,
     IDocumentGenerationUseCase documentGenerationUseCase,
     IWordToPdfConverterService pdfConverter,
-    ISignWellClient signWellClient) : IInvestmentContractDocumentService
+    ISignWellClient signWellClient,
+    IInvestmentContractRepository investmentContractRepository) : IInvestmentContractDocumentService
 {
     private const string InvestmentContractTemplateFileName = "InvestmentContract.docx";
     private static readonly string InvestmentContractTemplatePath = Path.Combine(
@@ -65,15 +67,21 @@ public sealed class InvestmentContractDocumentService(
                     request.RedirectUrl),
                 cancellationToken);
 
+            await investmentContractRepository.AddAsync(
+                new InvestmentContract
+                {
+                    ListingId = request.ListingId,
+                    UserId = request.UserId,
+                    SignWellDocumentId = signWellResponse.DocumentId,
+                    Status = InvestmentContract.PendingSignatureStatus
+                },
+                cancellationToken);
+
             return new GenerateInvestmentContractSignWellResponse(
                 signWellResponse.DocumentId,
                 signWellResponse.SignWellUrl);
         }
-        catch (ValidationException)
-        {
-            throw;
-        }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not ValidationException)
         {
             throw new DocumentSigningException("SignWell upload failed.", exception);
         }
