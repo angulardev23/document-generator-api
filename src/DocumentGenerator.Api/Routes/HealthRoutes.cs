@@ -1,8 +1,8 @@
-namespace DocumentGenerator.Api.Endpoints;
+namespace DocumentGenerator.Api.Routes;
 
-public sealed class HealthEndpoint : IEndpoint
+public sealed class HealthRoutes : IRouteModule
 {
-    public void MapEndpoints(IEndpointRouteBuilder endpoints)
+    public void MapRoutes(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/health", () => Results.Ok(new { status = "ok" }))
             .WithName("HealthCheck")

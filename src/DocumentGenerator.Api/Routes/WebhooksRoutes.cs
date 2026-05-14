@@ -2,11 +2,11 @@ using DocumentGenerator.Api.Contracts;
 using DocumentGenerator.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DocumentGenerator.Api.Endpoints;
+namespace DocumentGenerator.Api.Routes;
 
-public sealed class WebhooksEndpoint : IEndpoint
+public sealed class WebhooksRoutes : IRouteModule
 {
-    public void MapEndpoints(IEndpointRouteBuilder endpoints)
+    public void MapRoutes(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost(
                 "/webhooks/signwell",

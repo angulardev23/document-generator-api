@@ -1,14 +1,13 @@
-using System.Text.Json;
 using DocumentGenerator.Api.Contracts;
 using DocumentGenerator.Api.Services;
 using DocumentGenerator.Application.Documents;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DocumentGenerator.Api.Endpoints;
+namespace DocumentGenerator.Api.Routes;
 
-public sealed class DocumentEndpoint : IEndpoint
+public sealed class DocumentRoutes : IRouteModule
 {
-    public void MapEndpoints(IEndpointRouteBuilder endpoints)
+    public void MapRoutes(IEndpointRouteBuilder endpoints)
     {
         var documentsGroup = endpoints.MapGroup("/api/documents");
 

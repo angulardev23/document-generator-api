@@ -42,7 +42,7 @@ app.UseExceptionHandler();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.MapEndpoints();
+app.MapRouteModules();
 
 app.Run();
 
