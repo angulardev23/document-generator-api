@@ -1,3 +1,4 @@
+using DocumentGenerator.Domain.Documents;
 using DocumentGenerator.Domain.Services;
 using DocumentGenerator.Infrastructure.Documents;
 using DocumentGenerator.Infrastructure.Persistence;
@@ -22,6 +23,7 @@ public static class DependencyInjection
                 connectionString,
                 npgsqlOptions => npgsqlOptions.MigrationsAssembly(typeof(DocumentGeneratorDbContext).Assembly.FullName)));
 
+        services.AddScoped<IStoredDocumentRepository, StoredDocumentRepository>();
         services.AddScoped<IInvestmentContractRepository, InvestmentContractRepository>();
         services.AddScoped<IDocumentGeneratorService, DocxTemplaterDocumentGeneratorService>();
 

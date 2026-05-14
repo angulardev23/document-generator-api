@@ -36,6 +36,12 @@ public sealed class InvestmentContractConfiguration
             .HasMaxLength(64)
             .IsRequired();
 
+        builder.Property(contract => contract.SignedDocumentId)
+            .HasColumnName("signed_document_id");
+
+        builder.Property(contract => contract.SignedAt)
+            .HasColumnName("signed_at");
+
         builder.Property(contract => contract.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();
@@ -43,5 +49,15 @@ public sealed class InvestmentContractConfiguration
         builder.Property(contract => contract.UpdatedAt)
             .HasColumnName("updated_at")
             .IsRequired();
+
+        builder.HasIndex(contract => contract.SignWellDocumentId)
+            .IsUnique();
+
+        builder.HasIndex(contract => contract.SignedDocumentId);
+
+        builder.HasOne(contract => contract.SignedDocument)
+            .WithMany()
+            .HasForeignKey(contract => contract.SignedDocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

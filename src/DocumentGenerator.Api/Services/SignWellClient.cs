@@ -49,12 +49,10 @@ public sealed class SignWellClient(
             ]
         };
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, BuildDocumentsUri());
+        using var httpRequest = CreateRequest(HttpMethod.Post, BuildDocumentsUri());
         httpRequest.Content = JsonContent.Create(
             payload,
             mediaType: new MediaTypeHeaderValue("application/json"));
-
-        httpRequest.Headers.Add(SignWellApiKeyHeaderName, _options.ApiKey);
 
         using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -88,6 +86,35 @@ public sealed class SignWellClient(
         return new SignWellDocumentResponse(createdDocument.Id, signWellUrl);
     }
 
+    public async Task<SignWellCompletedDocumentResponse> DownloadCompletedDocumentAsync(
+        string documentId,
+        CancellationToken cancellationToken)
+    {
+        EnsureConfigured();
+
+        using var httpRequest = CreateRequest(
+            HttpMethod.Get,
+            BuildCompletedPdfUri(documentId));
+
+        using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
+        var content = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = System.Text.Encoding.UTF8.GetString(content);
+            throw new InvalidOperationException(
+                $"SignWell completed document download failed with status {(int)response.StatusCode}: {body}");
+        }
+
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+
+        return new SignWellCompletedDocumentResponse(
+            SanitizeFileName(fileName),
+            response.Content.Headers.ContentType?.MediaType ?? "application/pdf",
+            content);
+    }
+
     private void EnsureConfigured()
     {
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
@@ -104,6 +131,27 @@ public sealed class SignWellClient(
     private Uri BuildDocumentsUri()
     {
         return new Uri(new Uri(_options.BaseUrl, UriKind.Absolute), "/api/v1/documents");
+    }
+
+    private Uri BuildCompletedPdfUri(string documentId)
+    {
+        return new Uri(
+            new Uri(_options.BaseUrl, UriKind.Absolute),
+            $"/api/v1/documents/{Uri.EscapeDataString(documentId)}/completed_pdf?url_only=false");
+    }
+
+    private HttpRequestMessage CreateRequest(HttpMethod httpMethod, Uri uri)
+    {
+        var request = new HttpRequestMessage(httpMethod, uri);
+        request.Headers.Add(SignWellApiKeyHeaderName, _options.ApiKey);
+        return request;
+    }
+
+    private static string? SanitizeFileName(string? fileName)
+    {
+        return string.IsNullOrWhiteSpace(fileName)
+            ? null
+            : fileName.Trim('"');
     }
 
     private sealed class CreateDocumentPayload
