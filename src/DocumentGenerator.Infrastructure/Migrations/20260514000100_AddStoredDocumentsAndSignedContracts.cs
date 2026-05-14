@@ -1,10 +1,13 @@
 using System;
+using DocumentGenerator.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace DocumentGenerator.Infrastructure.Migrations;
 
+[Microsoft.EntityFrameworkCore.Infrastructure.DbContext(typeof(DocumentGeneratorDbContext))]
+[Migration("20260514000100_AddStoredDocumentsAndSignedContracts")]
 public partial class AddStoredDocumentsAndSignedContracts : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
