@@ -1,3 +1,5 @@
+using DocumentGenerator.Domain;
+using DocumentGenerator.Domain.Documents;
 using DocumentGenerator.Domain.InvestmentContracts;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +8,8 @@ namespace DocumentGenerator.Infrastructure.Persistence;
 public sealed class DocumentGeneratorDbContext(DbContextOptions<DocumentGeneratorDbContext> options)
     : DbContext(options)
 {
+    public DbSet<StoredDocument> Documents => Set<StoredDocument>();
+
     public DbSet<InvestmentContract> InvestmentContracts => Set<InvestmentContract>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -15,9 +19,16 @@ public sealed class DocumentGeneratorDbContext(DbContextOptions<DocumentGenerato
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplyAuditTimestamps();
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplyAuditTimestamps()
+    {
         var utcNow = DateTime.UtcNow;
 
-        foreach (var entry in ChangeTracker.Entries<InvestmentContract>())
+        foreach (var entry in ChangeTracker.Entries<IAuditable>())
         {
             switch (entry.State)
             {
@@ -36,7 +47,5 @@ public sealed class DocumentGeneratorDbContext(DbContextOptions<DocumentGenerato
                     throw new ArgumentOutOfRangeException();
             }
         }
-
-        return base.SaveChangesAsync(cancellationToken);
     }
 }
