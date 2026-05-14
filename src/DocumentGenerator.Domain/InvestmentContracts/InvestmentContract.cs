@@ -6,9 +6,9 @@ public sealed class InvestmentContract
 
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    public required string ListingId { get; set; }
+    public required int ListingId { get; set; }
 
-    public required string UserId { get; set; }
+    public required int UserId { get; set; }
 
     public required string SignWellDocumentId { get; set; }
 
