@@ -19,10 +19,12 @@ public sealed class InvestmentContractConfiguration
 
         builder.Property(contract => contract.ListingId)
             .HasColumnName("listing_id")
+            .HasColumnType("integer")
             .IsRequired();
 
         builder.Property(contract => contract.UserId)
             .HasColumnName("user_id")
+            .HasColumnType("integer")
             .IsRequired();
 
         builder.Property(contract => contract.SignWellDocumentId)

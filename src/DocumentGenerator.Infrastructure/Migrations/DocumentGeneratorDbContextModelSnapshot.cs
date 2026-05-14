@@ -28,9 +28,9 @@ partial class DocumentGeneratorDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("created_at");
 
-                b.Property<string>("ListingId")
+                b.Property<int>("ListingId")
                     .IsRequired()
-                    .HasColumnType("text")
+                    .HasColumnType("integer")
                     .HasColumnName("listing_id");
 
                 b.Property<string>("SignWellDocumentId")
@@ -48,9 +48,9 @@ partial class DocumentGeneratorDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("timestamp with time zone")
                     .HasColumnName("updated_at");
 
-                b.Property<string>("UserId")
+                b.Property<int>("UserId")
                     .IsRequired()
-                    .HasColumnType("text")
+                    .HasColumnType("integer")
                     .HasColumnName("user_id");
 
                 b.HasKey("Id");

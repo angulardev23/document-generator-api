@@ -214,8 +214,8 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
             new StringContent(
                 """
                 {
-                  "ListingId": "investment-123",
-                  "UserId": "user-456",
+                  "ListingId": 123,
+                  "UserId": 456,
                   "ContractDate": "2026-03-30",
                   "LenderFullName": "Carlitos Escalante",
                   "LenderEmail": "carlitos@example.com",
@@ -249,8 +249,8 @@ public sealed class DocumentGenerationEndpointTests(WebApplicationFactory<Progra
         var dbContext = scope.ServiceProvider.GetRequiredService<DocumentGeneratorDbContext>();
         var investmentContract = await dbContext.InvestmentContracts.SingleAsync();
 
-        Assert.Equal("investment-123", investmentContract.ListingId);
-        Assert.Equal("user-456", investmentContract.UserId);
+        Assert.Equal(123, investmentContract.ListingId);
+        Assert.Equal(456, investmentContract.UserId);
         Assert.Equal("signwell-document-123", investmentContract.SignWellDocumentId);
         Assert.Equal(InvestmentContract.PendingSignatureStatus, investmentContract.Status);
         Assert.NotEqual(default, investmentContract.CreatedAt);

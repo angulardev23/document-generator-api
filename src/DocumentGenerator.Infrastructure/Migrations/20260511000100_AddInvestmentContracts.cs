@@ -17,8 +17,8 @@ public partial class AddInvestmentContracts : Migration
             columns: table => new
             {
                 id = table.Column<Guid>(type: "uuid", nullable: false),
-                listing_id = table.Column<string>(type: "text", nullable: false),
-                user_id = table.Column<string>(type: "text", nullable: false),
+                listing_id = table.Column<int>(type: "integer", nullable: false),
+                user_id = table.Column<int>(type: "integer", nullable: false),
                 sign_well_document_id = table.Column<string>(type: "text", nullable: false),
                 status = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                 created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),

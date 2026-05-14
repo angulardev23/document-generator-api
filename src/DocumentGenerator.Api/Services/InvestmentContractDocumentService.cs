@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using DocumentGenerator.Api.Configuration;
 using DocumentGenerator.Api.Contracts;
@@ -92,7 +93,7 @@ public sealed class InvestmentContractDocumentService(
     }
 
     private async Task<GeneratedDocumentResponse> GeneratePdfAsync(
-        string contractDate,
+        DateOnly contractDate,
         string lenderFullName,
         string firstName,
         string lastName,
@@ -103,7 +104,7 @@ public sealed class InvestmentContractDocumentService(
     {
         var templateData = new GenerateInvestmentContractTemplateData
         {
-            ContractDate = contractDate,
+            ContractDate = contractDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             LenderFullName = lenderFullName,
             FirstName = firstName,
             LastName = lastName,

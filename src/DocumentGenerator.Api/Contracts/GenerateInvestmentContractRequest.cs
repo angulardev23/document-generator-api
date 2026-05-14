@@ -2,7 +2,7 @@ namespace DocumentGenerator.Api.Contracts;
 
 public sealed class GenerateInvestmentContractRequest
 {
-    public required string ContractDate { get; init; }
+    public required DateOnly ContractDate { get; init; }
 
     public required string LenderFullName { get; init; }
 
